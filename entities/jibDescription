@@ -1,0 +1,72 @@
+{
+  "name": "JobDescription",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Job title"
+    },
+    "department": {
+      "type": "string",
+      "description": "Department or team"
+    },
+    "location": {
+      "type": "string",
+      "description": "Job location"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "full-time",
+        "part-time",
+        "contract",
+        "internship"
+      ],
+      "default": "full-time"
+    },
+    "description": {
+      "type": "string",
+      "description": "Full job description"
+    },
+    "requirements": {
+      "type": "string",
+      "description": "Job requirements and qualifications"
+    },
+    "required_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Required skills for the position"
+    },
+    "preferred_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Nice-to-have skills"
+    },
+    "min_experience": {
+      "type": "number",
+      "description": "Minimum years of experience required"
+    },
+    "salary_range": {
+      "type": "string",
+      "description": "Salary range"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "paused",
+        "closed"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "title",
+    "description"
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "name": "Candidate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full name of the candidate"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "resume_url": {
+      "type": "string",
+      "description": "URL to the uploaded resume file"
+    },
+    "resume_text": {
+      "type": "string",
+      "description": "Extracted text content from resume"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of extracted skills"
+    },
+    "experience_years": {
+      "type": "number",
+      "description": "Years of experience"
+    },
+    "education": {
+      "type": "string",
+      "description": "Highest education level"
+    },
+    "summary": {
+      "type": "string",
+      "description": "AI-generated candidate summary"
+    },
+    "job_matches": {
+      "type": "array",
+      "description": "Match scores for different jobs",
+      "items": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "job_title": {
+            "type": "string"
+          },
+          "match_score": {
+            "type": "number"
+          },
+          "matching_skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missing_skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "screening",
+        "shortlisted",
+        "interviewed",
+        "hired",
+        "rejected"
+      ],
+      "default": "new"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Recruiter notes"
+    }
+  },
+  "required": [
+    "name",
+    "resume_url"
+  ]
+}
