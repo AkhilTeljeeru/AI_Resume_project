@@ -52,7 +52,7 @@ import Upload from './pages/upload';
 import Jobs from './pages/jobs';
 import CandidateDetail from './pages/CandidateDetail';
 import Candidates from './pages/Candidates';
-import __Layout from './Layout.jsx';
+import __Layout from './layout.jsx';
 
 
 export const PAGES = {
