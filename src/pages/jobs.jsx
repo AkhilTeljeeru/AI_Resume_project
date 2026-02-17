@@ -2,14 +2,18 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Briefcase, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Briefcase, Edit2, Trash2, Zap, X } from "lucide-react";
 import { toast } from "sonner";
+import { JOB_TEMPLATES, getJobCategories, getJobsByCategory } from "@/lib/job-templates";
 
 export default function Jobs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("Development");
   const [editingJob, setEditingJob] = useState(null);
-  const [formData, setFormData] = useState({ title: "", description: "" });
+  const [formData, setFormData] = useState({ title: "", description: "", required_skills: [], preferred_skills: [], min_experience: 0, requirements: "", type: "full-time" });
+  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -32,7 +36,7 @@ export default function Jobs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setIsFormOpen(false);
-      setFormData({ title: "", description: "" });
+      setFormData({ title: "", description: "", required_skills: [], preferred_skills: [], min_experience: 0, requirements: "", type: "full-time" });
       toast.success("Job created successfully");
     },
     onError: (error) => {
@@ -50,7 +54,7 @@ export default function Jobs() {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setIsFormOpen(false);
       setEditingJob(null);
-      setFormData({ title: "", description: "" });
+      setFormData({ title: "", description: "", required_skills: [], preferred_skills: [], min_experience: 0, requirements: "", type: "full-time" });
       toast.success("Job updated successfully");
     },
     onError: (error) => {
@@ -89,9 +93,34 @@ export default function Jobs() {
     }
   };
 
+  const handleAddTemplate = async (template) => {
+    setIsAddingTemplate(true);
+    try {
+      // Only pass title and description which are required by the API
+      // Other properties will be added through the edit form if needed
+      await createMutation.mutateAsync({
+        title: template.title,
+        description: template.description,
+      });
+      setShowTemplates(false);
+    } catch (error) {
+      console.error("Error adding template:", error);
+    } finally {
+      setIsAddingTemplate(false);
+    }
+  };
+
   const handleEdit = (job) => {
     setEditingJob(job);
-    setFormData({ title: job.title, description: job.description });
+    setFormData({ 
+      title: job.title, 
+      description: job.description,
+      required_skills: job.required_skills || [],
+      preferred_skills: job.preferred_skills || [],
+      min_experience: job.min_experience || 0,
+      requirements: job.requirements || "",
+      type: job.type || "full-time",
+    });
     setIsFormOpen(true);
   };
 
@@ -102,7 +131,7 @@ export default function Jobs() {
 
   const handleOpenForm = () => {
     setEditingJob(null);
-    setFormData({ title: "", description: "" });
+    setFormData({ title: "", description: "", required_skills: [], preferred_skills: [], min_experience: 0, requirements: "", type: "full-time" });
     setIsFormOpen(true);
   };
 
@@ -139,13 +168,22 @@ export default function Jobs() {
           <h1 className="text-3xl font-bold">Job Positions</h1>
           <p className="text-slate-600 mt-2">Manage and view active job listings</p>
         </div>
-        <button
-          onClick={handleOpenForm}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-        >
-          <Plus className="w-4 h-4" />
-          Create Job
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowTemplates(true)}
+            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition"
+          >
+            <Zap className="w-4 h-4" />
+            Quick Add
+          </button>
+          <button
+            onClick={handleOpenForm}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+          >
+            <Plus className="w-4 h-4" />
+            Create Job
+          </button>
+        </div>
       </div>
 
       {/* SEARCH */}
@@ -273,10 +311,76 @@ export default function Jobs() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Job description and requirements..."
-                  className="w-full border border-slate-300 rounded-lg p-3 text-sm h-40 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Job description..."
+                  className="w-full border border-slate-300 rounded-lg p-3 text-sm h-24 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Requirements</label>
+                <textarea
+                  value={formData.requirements}
+                  onChange={(e) =>
+                    setFormData({ ...formData, requirements: e.target.value })
+                  }
+                  placeholder="Job requirements and qualifications..."
+                  className="w-full border border-slate-300 rounded-lg p-3 text-sm h-20 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Required Skills (comma-separated)</label>
+                <textarea
+                  value={formData.required_skills?.join(", ") || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, required_skills: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })
+                  }
+                  placeholder="React, JavaScript, TypeScript..."
+                  className="w-full border border-slate-300 rounded-lg p-3 text-sm h-16 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Preferred Skills (comma-separated)</label>
+                <textarea
+                  value={formData.preferred_skills?.join(", ") || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, preferred_skills: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })
+                  }
+                  placeholder="Docker, CI/CD, AWS..."
+                  className="w-full border border-slate-300 rounded-lg p-3 text-sm h-16 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Minimum Experience (years)</label>
+                <input
+                  type="number"
+                  value={formData.min_experience || 0}
+                  onChange={(e) =>
+                    setFormData({ ...formData, min_experience: Number(e.target.value) })
+                  }
+                  placeholder="2"
+                  min="0"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Job Type</label>
+                <select
+                  value={formData.type || "full-time"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, type: e.target.value })
+                  }
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="full-time">Full-time</option>
+                  <option value="part-time">Part-time</option>
+                  <option value="contract">Contract</option>
+                  <option value="internship">Internship</option>
+                </select>
               </div>
 
               <div className="flex gap-2 pt-4">
@@ -303,6 +407,92 @@ export default function Jobs() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* TEMPLATES MODAL */}
+      {showTemplates && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-4xl max-h-screen overflow-y-auto rounded-lg p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Job Templates Library</h2>
+              <button
+                onClick={() => setShowTemplates(false)}
+                className="p-1 hover:bg-slate-100 rounded transition"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Category Tabs */}
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+              {getJobCategories().map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg font-medium transition ${
+                    selectedCategory === category
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            {/* Template Grid */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {getJobsByCategory(selectedCategory).map((template) => (
+                <motion.div
+                  key={template.title}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="border border-slate-300 rounded-lg p-4 hover:shadow-lg transition"
+                >
+                  <h3 className="font-bold text-lg mb-2 text-blue-700">{template.title}</h3>
+                  <p className="text-sm text-slate-600 mb-3 line-clamp-2">
+                    {template.description}
+                  </p>
+
+                  <div className="mb-3 space-y-1">
+                    <p className="text-xs text-slate-500">
+                      <span className="font-medium">Min. Experience:</span> {template.min_experience} years
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      <span className="font-medium">Type:</span> {template.type}
+                    </p>
+                  </div>
+
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-slate-700 mb-1">Required Skills:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {template.required_skills.slice(0, 3).map((skill) => (
+                        <span
+                          key={skill}
+                          className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                      {template.required_skills.length > 3 && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                          +{template.required_skills.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleAddTemplate(template)}
+                    disabled={isAddingTemplate}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium transition disabled:opacity-50"
+                  >
+                    {isAddingTemplate ? "Adding..." : "Add Job"}
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}    </div>
   );
 }

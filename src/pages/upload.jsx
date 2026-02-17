@@ -10,9 +10,11 @@ import {
   CheckCircle,
   Briefcase,
   Plus,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import ResumeUploader from "@/components/upload/ResumeUploader";
+import { calculateSkillMatch } from "@/lib/job-templates";
 
 export default function Upload() {
   const [selectedJobId, setSelectedJobId] = useState("");
@@ -68,6 +70,25 @@ export default function Upload() {
       .map((s) => s.trim())
       .filter(Boolean);
 
+    const jobMatches = [];
+    for (const job of activeJobs) {
+      const matchResult = calculateSkillMatch(
+        skillsArray,
+        job.required_skills || [],
+        job.preferred_skills || []
+      );
+      
+      if (matchResult.score >= 30) { // Only include jobs with at least 30% match
+        jobMatches.push({
+          job_id: job.id,
+          job_title: job.title,
+          match_score: matchResult.score,
+          matching_skills: matchResult.matchedRequired,
+          missing_skills: matchResult.missingRequired,
+        });
+      }
+    }
+
     const candidateData = {
       name: formData.name,
       email: formData.email,
@@ -76,19 +97,35 @@ export default function Upload() {
       experience_years: Number(formData.experience_years) || 0,
       education: formData.education,
       status: "new",
+      job_matches: selectedJob ? [{
+        job_id: selectedJob.id,
+        job_title: selectedJob.title,
+        match_score: (() => {
+          const matchResult = calculateSkillMatch(
+            skillsArray,
+            selectedJob.required_skills || [],
+            selectedJob.preferred_skills || []
+          );
+          return matchResult.score;
+        })(),
+        matching_skills: (() => {
+          const matchResult = calculateSkillMatch(
+            skillsArray,
+            selectedJob.required_skills || [],
+            selectedJob.preferred_skills || []
+          );
+          return matchResult.matchedRequired;
+        })(),
+        missing_skills: (() => {
+          const matchResult = calculateSkillMatch(
+            skillsArray,
+            selectedJob.required_skills || [],
+            selectedJob.preferred_skills || []
+          );
+          return matchResult.missingRequired;
+        })(),
+      }] : (jobMatches.length > 0 ? jobMatches.sort((a, b) => b.match_score - a.match_score).slice(0, 5) : []),
     };
-
-    // If a job is selected, create job match
-    if (selectedJob) {
-      const matchScore = Math.floor(Math.random() * 40) + 60;
-      candidateData.job_matches = [
-        {
-          job_id: selectedJob.id,
-          job_title: selectedJob.title,
-          match_score: matchScore,
-        },
-      ];
-    }
 
     createMutation.mutate(candidateData);
   };
@@ -116,21 +153,43 @@ export default function Upload() {
       };
 
       // Create candidate with resume data
+      const jobMatches = [];
+      for (const job of activeJobs) {
+        const matchResult = calculateSkillMatch(
+          mockResumeData.skills,
+          job.required_skills || [],
+          job.preferred_skills || []
+        );
+        
+        if (matchResult.score >= 30) {
+          jobMatches.push({
+            job_id: job.id,
+            job_title: job.title,
+            match_score: matchResult.score,
+            matching_skills: matchResult.matchedRequired,
+            missing_skills: matchResult.missingRequired,
+          });
+        }
+      }
+
       const candidateData = {
         ...mockResumeData,
         status: "new",
-      };
-
-      if (selectedJob) {
-        const matchScore = Math.floor(Math.random() * 40) + 60;
-        candidateData.job_matches = [
-          {
+        job_matches: selectedJob ? (() => {
+          const matchResult = calculateSkillMatch(
+            mockResumeData.skills,
+            selectedJob.required_skills || [],
+            selectedJob.preferred_skills || []
+          );
+          return [{
             job_id: selectedJob.id,
             job_title: selectedJob.title,
-            match_score: matchScore,
-          },
-        ];
-      }
+            match_score: matchResult.score,
+            matching_skills: matchResult.matchedRequired,
+            missing_skills: matchResult.missingRequired,
+          }];
+        })() : (jobMatches.length > 0 ? jobMatches.sort((a, b) => b.match_score - a.match_score).slice(0, 5) : []),
+      };
 
       await apiClient.createCandidate(candidateData);
       updateStatus("complete");
@@ -344,6 +403,59 @@ export default function Upload() {
                   required
                 />
               </div>
+
+              {/* Recommended Jobs Section */}
+              {formData.skills && activeJobs.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="w-4 h-4 text-blue-600" />
+                    <h3 className="font-semibold text-gray-900">Recommended Jobs</h3>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Based on your skills, here are the best matching positions:
+                  </p>
+                  <div className="space-y-2">
+                    {activeJobs
+                      .map((job) => {
+                        const skillsArray = formData.skills
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter(Boolean);
+                        const matchResult = calculateSkillMatch(
+                          skillsArray,
+                          job.required_skills || [],
+                          job.preferred_skills || []
+                        );
+                        return {
+                          job,
+                          ...matchResult,
+                        };
+                      })
+                      .sort((a, b) => b.score - a.score)
+                      .slice(0, 3)
+                      .map(({ job, score, matchedRequired }) => (
+                        <div
+                          key={job.id}
+                          className="flex items-center justify-between bg-white p-2 rounded border border-blue-100"
+                        >
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-700">{job.title}</p>
+                            <p className="text-xs text-gray-600">
+                              {matchedRequired.length} of {(job.required_skills || []).length} skills matched
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-blue-600">{score}%</p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </motion.div>
+              )}
 
               <div className="flex gap-2 pt-4">
                 <button
