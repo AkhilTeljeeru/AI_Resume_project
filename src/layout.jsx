@@ -10,8 +10,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/sonner";
+import { Button } from "@/components/ui/button.jsx";
+import { Toaster } from "@/components/ui/sonner.jsx";
 
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },

@@ -1,14 +1,14 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, X, CheckCircle, AlertCircle, Loader2, MoreHorizontal, Trash2, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button.jsx";
+import { Progress } from "@/components/ui/progress.jsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu.jsx";
 
 export default function ResumeUploader({ onUpload, isProcessing }) {
   const [dragActive, setDragActive] = useState(false);
