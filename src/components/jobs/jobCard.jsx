@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   MapPin,
   Briefcase,
@@ -16,7 +16,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/Dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
 /* ---------------- COLOR MAPS ---------------- */
 

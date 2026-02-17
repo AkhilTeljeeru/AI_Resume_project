@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 
 const navItems = [
