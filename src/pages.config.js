@@ -48,7 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import Dashboard from './pages/Dashboard';
-import Upload from './pages/Upload';
+import Upload from './pages/upload';
 import Jobs from './pages/Jobs';
 import CandidateDetail from './pages/CandidateDetail';
 import Candidates from './pages/Candidates';
