@@ -49,7 +49,7 @@
  */
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/upload';
-import Jobs from './pages/Jobs';
+import Jobs from './pages/jobs';
 import CandidateDetail from './pages/CandidateDetail';
 import Candidates from './pages/Candidates';
 import __Layout from './Layout.jsx';
