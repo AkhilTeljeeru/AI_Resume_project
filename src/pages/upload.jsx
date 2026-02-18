@@ -88,16 +88,14 @@ export default function Upload() {
         job.required_skills || [],
         job.preferred_skills || []
       );
-      
-      if (matchResult.score >= 30) { // Only include jobs with at least 30% match
-        jobMatches.push({
-          job_id: job.id,
-          job_title: job.title,
-          match_score: matchResult.score,
-          matching_skills: matchResult.matchedRequired,
-          missing_skills: matchResult.missingRequired,
-        });
-      }
+
+      jobMatches.push({
+        job_id: job.id,
+        job_title: job.title,
+        match_score: matchResult.score,
+        matching_skills: matchResult.matchedRequired,
+        missing_skills: matchResult.missingRequired,
+      });
     }
 
     // Build job matches - use selected job first, then add other matches
@@ -117,7 +115,7 @@ export default function Upload() {
         missing_skills: matchResult.missingRequired,
       });
     } else {
-      // If no specific job selected, include all matches >= 30%
+      // If no specific job selected, include top matches even when score is low
       finalJobMatches = jobMatches.sort((a, b) => b.match_score - a.match_score).slice(0, 5);
     }
 
@@ -160,16 +158,14 @@ export default function Upload() {
           job.required_skills || [],
           job.preferred_skills || []
         );
-        
-        if (matchResult.score >= 30) {
-          jobMatches.push({
-            job_id: job.id,
-            job_title: job.title,
-            match_score: matchResult.score,
-            matching_skills: matchResult.matchedRequired,
-            missing_skills: matchResult.missingRequired,
-          });
-        }
+
+        jobMatches.push({
+          job_id: job.id,
+          job_title: job.title,
+          match_score: matchResult.score,
+          matching_skills: matchResult.matchedRequired,
+          missing_skills: matchResult.missingRequired,
+        });
       }
       
       // Sort by match score and keep top 5

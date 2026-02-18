@@ -96,11 +96,15 @@ export default function Jobs() {
   const handleAddTemplate = async (template) => {
     setIsAddingTemplate(true);
     try {
-      // Only pass title and description which are required by the API
-      // Other properties will be added through the edit form if needed
       await createMutation.mutateAsync({
         title: template.title,
         description: template.description,
+        requirements: template.requirements,
+        required_skills: template.required_skills || [],
+        preferred_skills: template.preferred_skills || [],
+        min_experience: template.min_experience || 0,
+        type: template.type || "full-time",
+        status: "active",
       });
       setShowTemplates(false);
     } catch (error) {
