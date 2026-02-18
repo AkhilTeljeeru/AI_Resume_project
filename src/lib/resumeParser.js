@@ -144,7 +144,9 @@ async function extractTextFromPDF(file) {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items.map(item => item.str).join(' ');
+    const pageText = textContent.items
+      .map((item) => ("str" in item ? item.str : ""))
+      .join(' ');
     text += pageText + ' ';
   }
   
@@ -167,11 +169,10 @@ export async function extractResumeText(file) {
   try {
     if (file.type === 'application/pdf') {
       return await extractTextFromPDF(file);
-    } else if (
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.type === 'application/msword'
-    ) {
+    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       return await extractTextFromDOCX(file);
+    } else if (file.type === 'application/msword') {
+      throw new Error('Legacy .doc files are not supported. Please upload a .docx or .pdf file.');
     } else {
       throw new Error('Unsupported file type');
     }

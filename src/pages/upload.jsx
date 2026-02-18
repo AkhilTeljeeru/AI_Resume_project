@@ -138,6 +138,7 @@ export default function Upload() {
 
   const handleResumeUpload = async (file, updateStatus) => {
     try {
+      setIsProcessing(true);
       updateStatus("uploading");
       
       // Create a URL for the resume that persists
@@ -198,6 +199,8 @@ export default function Upload() {
     } catch (error) {
       updateStatus("error");
       toast.error("Failed to process resume: " + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 

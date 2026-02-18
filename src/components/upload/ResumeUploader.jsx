@@ -18,12 +18,11 @@ export default function ResumeUploader({ onUpload, isProcessing }) {
     const validTypes = [
       "application/pdf",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/msword",
     ];
     const maxSize = 10 * 1024 * 1024; // 10MB
 
     if (!validTypes.includes(file.type)) {
-      return "Only PDF and DOCX files are allowed";
+      return "Only PDF and DOCX files are supported";
     }
     if (file.size > maxSize) {
       return "File size must be less than 10MB";
@@ -120,7 +119,7 @@ export default function ResumeUploader({ onUpload, isProcessing }) {
         <input
           type="file"
           multiple
-          accept=".pdf,.docx,.doc"
+          accept=".pdf,.docx"
           onChange={handleFileInput}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           disabled={isProcessing}
