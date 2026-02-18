@@ -6,6 +6,7 @@ import {
   TrendingUp,
   CheckCircle,
   Download,
+  FileText,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
@@ -305,6 +306,8 @@ const exportToCSV = () => {
                     <th className="px-6 py-3 text-left text-sm font-medium text-slate-400">Email</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-slate-400">Skills</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-slate-400">Match Score</th>
+                    <th className="px-6 py-3 text-left text-sm font-medium text-slate-400">Resume</th>
+                    <th className="px-6 py-3 text-left text-sm font-medium text-slate-400">Recommended Jobs</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-slate-400">Status</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-slate-400">Actions</th>
                   </tr>
@@ -318,22 +321,88 @@ const exportToCSV = () => {
                       <td className="px-6 py-4 text-sm">{candidate.name}</td>
                       <td className="px-6 py-4 text-sm text-slate-400">{candidate.email}</td>
                       <td className="px-6 py-4 text-sm">
-                        {candidate.skills?.slice(0, 2).map((skill) => (
-                          <span
-                            key={skill}
-                            className="inline-block bg-blue-500/20 text-blue-300 px-2 py-1 rounded text-xs mr-1"
-                          >
-                            {skill}
+                        <div className="flex flex-wrap gap-1 max-w-xs">
+                          {candidate.skills?.slice(0, 3).map((skill) => (
+                            <span
+                              key={skill}
+                              className="inline-block bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full text-xs whitespace-nowrap"
+                              title={skill}
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {candidate.skills?.length > 3 && (
+                            <span className="inline-block bg-slate-700 text-slate-300 px-2 py-1 rounded-full text-xs whitespace-nowrap">
+                              +{candidate.skills.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-center">
+                        {candidate.job_matches && candidate.job_matches.length > 0 ? (
+                          <span className={`inline-flex items-center justify-center w-12 h-12 rounded-full font-bold text-white ${
+                            candidate.job_matches[0].match_score >= 80
+                              ? "bg-green-500/20 text-green-300"
+                              : candidate.job_matches[0].match_score >= 60
+                              ? "bg-blue-500/20 text-blue-300"
+                              : candidate.job_matches[0].match_score >= 40
+                              ? "bg-yellow-500/20 text-yellow-300"
+                              : "bg-red-500/20 text-red-300"
+                          }`}>
+                            {candidate.job_matches[0].match_score}%
                           </span>
-                        ))}
-                        {candidate.skills?.length > 2 && (
-                          <span className="text-xs text-slate-500">
-                            +{candidate.skills.length - 2}
-                          </span>
+                        ) : (
+                          <span className="text-slate-500">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-blue-400">
-                        {candidate.job_matches?.[0]?.match_score || 0}%
+                      <td className="px-6 py-4 text-sm">
+                        {candidate.resume_url ? (
+                          <a
+                            href={candidate.resume_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 bg-green-500/20 text-green-300 px-3 py-1 rounded text-xs hover:bg-green-500/30 transition font-medium"
+                          >
+                            <FileText className="w-3 h-3" />
+                            View Resume
+                          </a>
+                        ) : (
+                          <span className="text-slate-500 text-xs">No resume</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="space-y-2 max-w-xs">
+                          {candidate.job_matches?.length > 0 ? (
+                            candidate.job_matches.slice(0, 3).map((job) => (
+                              <motion.div
+                                key={job.job_id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="flex items-center justify-between bg-slate-900/50 rounded-lg px-2 py-1 border border-slate-700/50"
+                              >
+                                <span className="text-xs text-slate-300 truncate" title={job.job_title}>
+                                  {job.job_title}
+                                </span>
+                                <span className={`ml-2 text-xs font-bold rounded px-2 py-0.5 whitespace-nowrap ${
+                                  job.match_score >= 70
+                                    ? "bg-green-500/20 text-green-400"
+                                    : job.match_score >= 50
+                                    ? "bg-yellow-500/20 text-yellow-400"
+                                    : "bg-red-500/20 text-red-400"
+                                }`}>
+                                  {job.match_score}%
+                                </span>
+                              </motion.div>
+                            ))
+                          ) : (
+                            <span className="text-xs text-slate-500">No matches</span>
+                          )}
+                          {candidate.job_matches?.length > 3 && (
+                            <span className="text-xs text-slate-500 px-2 py-1">
+                              +{candidate.job_matches.length - 3} more
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${

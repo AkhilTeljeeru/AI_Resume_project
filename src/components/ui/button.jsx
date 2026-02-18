@@ -35,7 +35,11 @@ const buttonVariants = cva(
 )
 
 /**
- * @type {React.ForwardRefExoticComponent<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string; asChild?: boolean; } & React.RefAttributes<HTMLButtonElement>>}
+ * @typedef {import("class-variance-authority").VariantProps<typeof buttonVariants>} ButtonVariantProps
+ */
+
+/**
+ * @type {React.ForwardRefExoticComponent<React.ButtonHTMLAttributes<HTMLButtonElement> & ButtonVariantProps & { asChild?: boolean; } & React.RefAttributes<HTMLButtonElement>>}
  */
 const Button = React.forwardRef(({ className, variant, size, asChild = false, children, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"

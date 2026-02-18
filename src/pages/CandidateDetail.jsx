@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiClient } from "@/api/apiClient";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, Trash2, Zap, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CandidateDetail() {
@@ -164,6 +164,22 @@ export default function CandidateDetail() {
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Resume */}
+        {candidate.resume_url && (
+          <div className="mb-8">
+            <h2 className="font-semibold text-lg mb-3">Resume</h2>
+            <a
+              href={candidate.resume_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-green-100 text-green-800 hover:bg-green-200 px-4 py-2 rounded-lg transition font-medium"
+            >
+              <FileText className="w-4 h-4" />
+              Download/View Resume
+            </a>
           </div>
         )}
 

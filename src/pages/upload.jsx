@@ -7,16 +7,19 @@ import { createPageUrl } from "@/utils";
 import {
   ArrowLeft,
   Sparkles,
-  CheckCircle,
   Briefcase,
   Plus,
   Zap,
+  TrendingUp,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
-import ResumeUploader from "@/components/upload/ResumeUploader";
+import ResumeUploader from "@/components/upload/ResumeUploader.jsx";
 import { calculateSkillMatch } from "@/lib/job-templates";
+import { extractResumeText, extractCandidateInfo } from "@/lib/resumeParser";
 
 export default function Upload() {
+  const navigate = useNavigate();
   const [selectedJobId, setSelectedJobId] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -28,8 +31,9 @@ export default function Upload() {
   });
   const [showForm, setShowForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  const navigate = useNavigate();
+  const [resumeUploadData, setResumeUploadData] = useState(null);
+  const [resumeUrl, setResumeUrl] = useState(null);
+  const [recommendedJobs, setRecommendedJobs] = useState([]);
   const queryClient = useQueryClient();
 
   const { data: jobs = [] } = useQuery({
@@ -43,7 +47,7 @@ export default function Upload() {
   /** @type {import('@tanstack/react-query').UseMutationResult<any, Error, {name: string, email: string, phone: string, skills: string[], experience_years: number, education: string, status: string, job_matches?: any[]}>} */
   const createMutation = useMutation({
     mutationFn: (data) => apiClient.createCandidate(data),
-    onSuccess: () => {
+    onSuccess: (newCandidate) => {
       queryClient.invalidateQueries({ queryKey: ["candidates"] });
       setFormData({
         name: "",
@@ -55,7 +59,14 @@ export default function Upload() {
       });
       setSelectedJobId("");
       setShowForm(false);
+      setResumeUploadData(null);
+      setResumeUrl(null);
+      setRecommendedJobs([]);
       toast.success("Candidate created successfully!");
+      // Navigate to dashboard after successful creation
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1500);
     },
     onError: (error) => {
       toast.error("Failed to create candidate: " + error.message);
@@ -89,6 +100,27 @@ export default function Upload() {
       }
     }
 
+    // Build job matches - use selected job first, then add other matches
+    let finalJobMatches = [];
+    
+    if (selectedJob) {
+      const matchResult = calculateSkillMatch(
+        skillsArray,
+        selectedJob.required_skills || [],
+        selectedJob.preferred_skills || []
+      );
+      finalJobMatches.push({
+        job_id: selectedJob.id,
+        job_title: selectedJob.title,
+        match_score: matchResult.score,
+        matching_skills: matchResult.matchedRequired,
+        missing_skills: matchResult.missingRequired,
+      });
+    } else {
+      // If no specific job selected, include all matches >= 30%
+      finalJobMatches = jobMatches.sort((a, b) => b.match_score - a.match_score).slice(0, 5);
+    }
+
     const candidateData = {
       name: formData.name,
       email: formData.email,
@@ -97,34 +129,8 @@ export default function Upload() {
       experience_years: Number(formData.experience_years) || 0,
       education: formData.education,
       status: "new",
-      job_matches: selectedJob ? [{
-        job_id: selectedJob.id,
-        job_title: selectedJob.title,
-        match_score: (() => {
-          const matchResult = calculateSkillMatch(
-            skillsArray,
-            selectedJob.required_skills || [],
-            selectedJob.preferred_skills || []
-          );
-          return matchResult.score;
-        })(),
-        matching_skills: (() => {
-          const matchResult = calculateSkillMatch(
-            skillsArray,
-            selectedJob.required_skills || [],
-            selectedJob.preferred_skills || []
-          );
-          return matchResult.matchedRequired;
-        })(),
-        missing_skills: (() => {
-          const matchResult = calculateSkillMatch(
-            skillsArray,
-            selectedJob.required_skills || [],
-            selectedJob.preferred_skills || []
-          );
-          return matchResult.missingRequired;
-        })(),
-      }] : (jobMatches.length > 0 ? jobMatches.sort((a, b) => b.match_score - a.match_score).slice(0, 5) : []),
+      resume_url: resumeUrl,
+      job_matches: finalJobMatches,
     };
 
     createMutation.mutate(candidateData);
@@ -134,29 +140,22 @@ export default function Upload() {
     try {
       updateStatus("uploading");
       
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create a URL for the resume that persists
+      const resumeUrl = URL.createObjectURL(file);
+      setResumeUrl(resumeUrl);
+      
+      // Extract text from resume file
+      const resumeText = await extractResumeText(file);
       updateStatus("processing");
       
-      // Simulate processing and parsing resume
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Extract candidate information from resume text
+      const candidateInfo = extractCandidateInfo(resumeText, file.name);
       
-      // Extract data from resume (mock implementation)
-      const mockResumeData = {
-        name: `Candidate from ${file.name}`,
-        email: `candidate${Date.now()}@example.com`,
-        phone: "+1 (555) 000-0000",
-        skills: ["React", "JavaScript", "Node.js", "TypeScript"],
-        experience_years: 3,
-        education: "BS Computer Science",
-        resume_url: `mock-resume-${Date.now()}.pdf`,
-      };
-
-      // Create candidate with resume data
+      // Calculate job matches
       const jobMatches = [];
       for (const job of activeJobs) {
         const matchResult = calculateSkillMatch(
-          mockResumeData.skills,
+          candidateInfo.skills,
           job.required_skills || [],
           job.preferred_skills || []
         );
@@ -171,31 +170,31 @@ export default function Upload() {
           });
         }
       }
+      
+      // Sort by match score and keep top 5
+      const finalJobMatches = jobMatches
+        .sort((a, b) => b.match_score - a.match_score)
+        .slice(0, 5);
 
-      const candidateData = {
-        ...mockResumeData,
-        status: "new",
-        job_matches: selectedJob ? (() => {
-          const matchResult = calculateSkillMatch(
-            mockResumeData.skills,
-            selectedJob.required_skills || [],
-            selectedJob.preferred_skills || []
-          );
-          return [{
-            job_id: selectedJob.id,
-            job_title: selectedJob.title,
-            match_score: matchResult.score,
-            matching_skills: matchResult.matchedRequired,
-            missing_skills: matchResult.missingRequired,
-          }];
-        })() : (jobMatches.length > 0 ? jobMatches.sort((a, b) => b.match_score - a.match_score).slice(0, 5) : []),
-      };
-
-      await apiClient.createCandidate(candidateData);
+      // Directly create the candidate without showing form
       updateStatus("complete");
       
-      queryClient.invalidateQueries({ queryKey: ["candidates"] });
-      toast.success(`Candidate created from ${file.name}`);
+      const candidateData = {
+        name: candidateInfo.name,
+        email: candidateInfo.email,
+        phone: candidateInfo.phone,
+        skills: candidateInfo.skills,
+        experience_years: candidateInfo.experience_years || 0,
+        education: candidateInfo.education,
+        status: "new",
+        resume_url: resumeUrl,
+        job_matches: finalJobMatches,
+      };
+
+      // Auto-create the candidate
+      createMutation.mutate(candidateData);
+      toast.success(`Resume analyzed! Creating candidate ${candidateInfo.name}...`);
+      
     } catch (error) {
       updateStatus("error");
       toast.error("Failed to process resume: " + error.message);
@@ -279,6 +278,67 @@ export default function Upload() {
             </motion.div>
           )}
         </motion.div>
+
+        {/* Recommended Jobs Section */}
+        {recommendedJobs.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 p-6 mb-6"
+          >
+            <div className="flex items-start gap-4 mb-4">
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Star className="w-6 h-6 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-900 mb-1">
+                  Recommended Jobs for This Candidate
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Based on extracted skills, here are the best matching positions
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {recommendedJobs.map((job) => (
+                <motion.button
+                  key={job.job_id}
+                  onClick={() => setSelectedJobId(String(job.job_id))}
+                  whileHover={{ scale: 1.02 }}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition ${
+                    String(selectedJobId) === String(job.job_id)
+                      ? "border-purple-500 bg-purple-100"
+                      : "border-purple-200 bg-white hover:border-purple-400"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{job.job_title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Matched: {job.matching_skills.length} skills
+                        {job.missing_skills.length > 0 && (
+                          <span className="ml-2">• Missing: {job.missing_skills.length} skills</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {job.match_score}%
+                        </div>
+                        <p className="text-xs text-gray-500">match</p>
+                      </div>
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <TrendingUp className="w-5 h-5 text-purple-600" />
+                      </div>
+                    </div>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Form Area */}
         <motion.div
@@ -393,6 +453,29 @@ export default function Upload() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Skills (comma-separated) *
                 </label>
+
+                {resumeUploadData && resumeUploadData.skills && resumeUploadData.skills.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200"
+                  >
+                    <p className="text-xs font-medium text-green-800 mb-2">
+                      ✓ Detected Skills from Resume:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {resumeUploadData.skills.map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full font-medium"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
                 <textarea
                   value={formData.skills}
                   onChange={(e) =>
@@ -464,8 +547,28 @@ export default function Upload() {
                   className="flex-1 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg transition"
                 >
                   Cancel
-                </button>
-                <button
+                </button>                {resumeUploadData && (
+                  <button
+                    onClick={() => {
+                      setResumeUploadData(null);
+                      setRecommendedJobs([]);
+                      setShowForm(false);
+                      setFormData({
+                        name: "",
+                        email: "",
+                        phone: "",
+                        skills: "",
+                        experience_years: "",
+                        education: "",
+                      });
+                      setSelectedJobId("");
+                    }}
+                    type="button"
+                    className="flex-1 border border-orange-300 text-orange-700 hover:bg-orange-50 px-4 py-2 rounded-lg transition"
+                  >
+                    Start Fresh
+                  </button>
+                )}                <button
                   type="submit"
                   disabled={createMutation.isPending}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition disabled:opacity-50"

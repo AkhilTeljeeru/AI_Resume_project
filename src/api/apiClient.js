@@ -8,18 +8,30 @@ let candidates = [
     id: 1,
     name: "John Doe",
     email: "john@example.com",
+    phone: "123-456-7890",
     skills: ["React", "JavaScript", "Node.js"],
     status: "new",
-    job_matches: [],
+    experience_years: 3,
+    education: "B.Sc Computer Science",
+    job_matches: [
+      { job_id: 1, job_title: "Frontend Developer", match_score: 85 },
+      { job_id: 2, job_title: "AI Engineer", match_score: 35 },
+    ],
     created_date: new Date().toISOString(),
   },
   {
     id: 2,
     name: "Jane Smith",
     email: "jane@example.com",
-    skills: ["Python", "Machine Learning"],
+    phone: "987-654-3210",
+    skills: ["Python", "Machine Learning", "TensorFlow"],
     status: "shortlisted",
-    job_matches: [],
+    experience_years: 5,
+    education: "M.Sc Data Science",
+    job_matches: [
+      { job_id: 1, job_title: "Frontend Developer", match_score: 40 },
+      { job_id: 2, job_title: "AI Engineer", match_score: 92 },
+    ],
     created_date: new Date().toISOString(),
   },
 ];
@@ -69,9 +81,15 @@ export const apiClient = {
     const newCandidate = {
       id: Date.now(),
       created_date: new Date().toISOString(),
-      status: "new",
-      job_matches: [],
-      ...data,
+      status: data.status || "new",
+      job_matches: data.job_matches || [],
+      name: data.name || "",
+      email: data.email || "",
+      phone: data.phone || "",
+      skills: data.skills || [],
+      experience_years: data.experience_years || 0,
+      education: data.education || "",
+      resume_url: data.resume_url || null,
     };
     candidates.push(newCandidate);
     return newCandidate;
@@ -82,7 +100,12 @@ export const apiClient = {
     const index = candidates.findIndex((c) => c.id === Number(id));
     if (index === -1) throw new Error(`Candidate with ID ${id} not found`);
     
-    candidates[index] = { ...candidates[index], ...data };
+    candidates[index] = { 
+      ...candidates[index], 
+      ...data,
+      id: candidates[index].id, // Preserve original ID
+      created_date: candidates[index].created_date, // Preserve creation date
+    };
     return candidates[index];
   },
 

@@ -4,7 +4,7 @@ import { apiClient } from "@/api/apiClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Search, Briefcase, Edit2, Trash2, Zap, X } from "lucide-react";
 import { toast } from "sonner";
-import { JOB_TEMPLATES, getJobCategories, getJobsByCategory } from "@/lib/job-templates";
+import { getJobCategories, getJobsByCategory } from "@/lib/job-templates";
 
 export default function Jobs() {
   const [searchTerm, setSearchTerm] = useState("");
